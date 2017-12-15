@@ -1,0 +1,425 @@
+●
+Port A 口的5个引脚：PA[6:2]
+●
+Port B 口的8个引脚：PB[7:0]
+●
+Port C 口的8个引脚：PC[7:0]
+●
+Port D 口的7个引脚：PD[6:0]
+●
+Port E 口的8个引脚：PE[7:0]
+PD7 是最高优先级的中断源 (TLI)。
+
+
+The following software using the library can configure the ADC1 in the scan mode for 5 channels: 
+
+/* Enable ADC1 */ 
+ADC1_Cmd(ENABLE); 
+
+/* Enable scan mode */ 
+ADC1_ScanModeCmd(ENABLE); 
+
+ADC1_ConversionConfig(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_5, ADC1_ALIGN_RIGHT); 
+
+/*Start Conversion */ 
+ADC1_StartConversion(); 
+
+/* Wait until end of conversion */ 
+while (!ADC1_GetFlagStatus(ADC1_FLAG_EOC)); 
+
+/* Clear end of conversion flag */ 
+ADC1_ClearFlag(ADC1_FLAG_EOC); 
+
+for (i = 0; i
+{ 
+/* Get conversion value from buffers */ 
+val[i]= ADC1_GetBufferValue(i) 
+} 
+
+The ADC1 scan mode works for all the channels available on the product, refer to the product datasheet to check the channels availability (it depend from the product package) 
+
+Regards 
+mozra 
+
+
+端口中断
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   +  实验平台: ST 官方三合一套件  
+   +  硬件    : STM8S105S6T6C
+   +  开发平台: IAR For STM8 1.10
+   +  仿真器  : ST-Link
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+ #include "stm8s.h"
+ /*******************************************************************************
+   *                         ==时钟初始化函数==
+   * CLK_DeInit();                                   -->  复位时钟寄存器
+  * CLK_HSICmd(ENABLE);                             -->  使能内部高速时钟
+  * CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV2);  -->  配置内部高速时钟(时钟分频器:2分频)
+   * CLK_ClockSecuritySystemEnable();                -->  开启时钟安全系统
+*******************************************************************************/
+void CLK_INIT(void)                
+ {
+   CLK_DeInit();
+   CLK_HSICmd(ENABLE);
+   CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV2);
+   CLK_ClockSecuritySystemEnable();
+ }
+ /*******************************************************************************
+   *                         ==I/O口初始化函数==
+   * GPIO_DeInit();                                   -->  复位I/O端口 D
+   * GPIO_Init(GPIOD , GPIO_PIN_7 , GPIO_MODE_IN_PU_IT);                      
+                                                      -->  使能PORTD_7, 设置为 输入 ，上拉 ，带中断
+  * GPIO_Init(GPIOD , GPIO_PIN_0 , GPIO_MODE_OUT_PP_LOW_SLOW);                      
+                                                      -->  使能PORTD_0, 设置为 输出，推挽式 ，低电平 ，低速率
+*******************************************************************************/
+void GPIO_INIT(void)
+ {
+   GPIO_DeInit(GPIOD);
+   GPIO_Init(GPIOD , GPIO_PIN_7 , GPIO_MODE_IN_FL_IT);          
+   GPIO_Init(GPIOD , GPIO_PIN_0 , GPIO_MODE_OUT_PP_LOW_SLOW);      // LED
+ }
+ /*******************************************************************************
+   *                         ==外部中断初始化函数==
+   * EXTI_DeInit();                                                            --> 初始化寄存器
+  * EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD , EXTI_SENSITIVITY_FALL_ONLY);  --> 设定下降沿触发外部中断  
+ *******************************************************************************/
+void EXTI_INIT(void)
+ {
+   EXTI_DeInit();
+   EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD , EXTI_SENSITIVITY_FALL_ONLY);
+ }
+ /*******************************************************************************
+   *                           ==MAIN 函数==
+   * 初始化 时钟
+  * 初始化 端口
+  * 初始化 外部中断触发方式
+  * 使能全局中断
+*******************************************************************************/
+void main(void)
+ {
+   CLK_INIT();
+   GPIO_INIT();
+   EXTI_INIT();
+   enableInterrupts();
+    while(1);
+ }
+ /*******************************************************************************
+   *                           ==中断服务函数 函数==
+   * PORTD_7是外部最高优先级的中断源(TLI)
+   * 按下按键LED亮，松开按键则LED灭  
+ *******************************************************************************/
+ #pragma vector=2
+ __interrupt void TLI_IRQHandler(void)
+ {
+         GPIO_WriteReverse(GPIOD,GPIO_PIN_0);    //翻转 管脚电平
+
+
+
+[STM8] IAR for STM8头文件中断向量定义的疑惑 [复制链接]    此帖已结(0)
+ 
+
+  
+
+
+
+
+
+
+经常做客技术高手奖章
+
+
+
+.
+
+
+
+.
+查看详细资料
+
+
+
+
+hjl2832
+
+
+
+中级技术员 Rank: 3Rank: 3
+
+
+
+
+积分123帖子39本月在线1小时0分.
+专家等级: 
+
+结帖率:100%
+ 
+
+电梯直达  跳转到指定楼层 
+1#  
+
+
+
+ hjl2832 发表于 2011-4-12 17:04:33 |只看该作者 |倒序浏览 |返回版面   .
+
+
+ 
+ 
+ 0 
+  
+
+请教各位，我使用STM8S105来学习，使用IAR FOR STM8，但今天在使用时发现IAR自带的头文件中的中断向量定义与STM8S105的手册不一至，IAR中STM8S105K4.H头文件的定义如下：/*--------------------------------------------------------------------
+*      Interrupt vector numbers
+ *-----------------------------------------------------------------------*/
+ #define SPI_TXE_vector                       0x0C
+ #define SPI_RXNE_vector                      0x0C
+ #define SPI_WKUP_vector                      0x0C
+ #define SPI_MODF_vector                      0x0C
+ #define SPI_CRCERR_vector                    0x0C
+ #define SPI_OVR_vector                       0x0C
+ #define TIM1_OVR_TIF_vector                  0x0D
+ #define TIM1_OVR_BIF_vector                  0x0D
+ #define TIM1_OVR_UIF_vector                  0x0D
+ #define TIM1_CAPCOM_CC1IF_vector             0x0E
+ #define TIM1_CAPCOM_CC2IF_vector             0x0E
+ #define TIM1_CAPCOM_COMIF_vector             0x0E
+ #define TIM1_CAPCOM_CC4IF_vector             0x0E
+ #define TIM1_CAPCOM_CC3IF_vector             0x0E
+ #define TIM2_OVR_UIF_vector                  0x0F
+ #define TIM3_OVR_UIF_vector                  0x11
+ #define TIM2_CAPCOM_CC3IF_vector             0x10
+ #define TIM3_CAPCOM_CC3IF_vector             0x12
+ #define TIM2_CAPCOM_CC1IF_vector             0x10
+ #define TIM2_CAPCOM_TIF_vector               0x10
+ #define TIM3_CAPCOM_TIF_vector               0x12
+ #define TIM3_CAPCOM_CC1IF_vector             0x12
+ #define TIM3_CAPCOM_CC2IF_vector             0x12
+ #define TIM2_CAPCOM_CC2IF_vector             0x10
+ #define I2C_SB_vector                        0x15
+ #define I2C_ADDR_vector                      0x15
+ #define I2C_ADD10_vector                     0x15
+ #define I2C_STOPF_vector                     0x15
+ #define I2C_BTF_vector                       0x15
+ #define I2C_OVR_vector                       0x15
+ #define I2C_RXNE_vector                      0x15
+ #define I2C_TXE_vector                       0x15
+ #define I2C_BERR_vector                      0x15
+ #define I2C_ARLO_vector                      0x15
+ #define I2C_AF_vector                        0x15
+ #define I2C_WUFH_vector                      0x15
+ #define UART2_T_TXE_vector                   0x16
+ #define UART2_T_TC_vector                    0x16
+ #define UART2_R_OR_vector                    0x17
+ #define UART2_R_RXNE_vector                  0x17
+ #define UART2_R_IDLE_vector                  0x17
+ #define UART2_R_PE_vector                    0x17
+ #define UART2_R_LBDF_vector                  0x17
+ #define ADC1_AWS2_vector                     0x18
+ #define ADC1_AWS1_vector                     0x18
+ #define ADC1_AWS0_vector                     0x18
+ #define ADC1_AWS3_vector                     0x18
+ #define ADC1_EOC_vector                      0x18
+ #define ADC1_AWS5_vector                     0x18
+ #define ADC1_AWS6_vector                     0x18
+ #define ADC1_AWS7_vector                     0x18
+ #define ADC1_AWS8_vector                     0x18
+ #define ADC1_AWS9_vector                     0x18
+ #define ADC1_AWDG_vector                     0x18
+ #define ADC1_AWS4_vector                     0x18
+ #define TIM4_OVR_UIF_vector                  0x19
+ #define FLASH_EOP_vector                     0x1A
+ #define FLASH_WR_PG_DIS_vector               0x1A
+
+而我在查找STM8S105的数据手册时看到的中断向量的定义如下：
+IRQ NO      Source block             Description
+   0                TLI                     External top level interrupt
+   1                AWU                   Auto wake up from halt
+   2                CLK                    Clock controller
+   3                EXTI0                 Port A external interrupts
+   4                EXTI1                 Port B external interrupts
+   5                EXTI2                 Port C external interrupts
+   6                EXTI3                 Port D external interrupts
+   7                EXTI4                 Port E external interrupts
+   8                                         Reserved
+   9                                         Reserved
+   10              SPI                     End of transfer
+   11              TIM1                  TIM1update/overflow/underflow/trigger/break
+   12              TIM1                  TIM1 capture/ compare
+   13              TIM                    TIM update/ overflow
+   14              TIM                    TIM capture/ compare
+   15              TIM3                  Update/ overflow
+   16              TIM3                  Capture/ compare
+   17                                       Reserved
+   18                                       Reserved
+   19              I2C                    I2C interrupt
+   20              UART2               Tx complete
+   21              UART2               Receive register DATA FULL
+   22              ADC1        ADC1 end of conversion/analog watchdog interrupt
+   23              TIM                    TIM update/ overflow
+   24              Flash                  EOP/ WR_PG_DIS
+
+请问如此以来，如果我要在IAR用中断程序，那不是出错了吗？ 
+
+
+ 
+ 
+ 
+ 
+
+
+分享0 收藏0 举报 
+. 
+  
+
+
+
+
+
+
+
+
+
+
+
+你把数据手册中的中断向量表看全了，不要忽略复位和软中断！ 
+
+
+
+
+手册向量号 + 2 = IAR向量号 
+
+
+
+ hjl2832 发表于 2011-4-13 09:01:28 |只看该作者 |返回版面   .
+
+
+
+
+大家的意思是说，手册没给出参数的“复位和软中断”在IAR里要算进去？这样子那么就是+2就对得上了，可我又不明白了，为什么COSMIC里中断向量定义又不需要加上那两个？ 
+
+
+ 
+ 
+ 
+ 
+
+
+举报 
+. 
+  
+
+
+
+
+
+
+以坛为家技术高手奖章涓涓之细流
+
+
+
+.
+
+
+
+.
+查看详细资料
+
+
+
+
+枫叶gbwz
+
+
+
+资深技术员 Rank: 4
+
+
+
+
+积分412帖子116本月在线13小时45分.
+专家等级: 
+
+结帖率:80%
+ 
+6#  
+
+
+
+ 枫叶gbwz 发表于 2013-6-4 15:58:38 |只看该作者 |返回版面   .
+
+
+
+
+
+
+香水城 发表于 2011-4-12 18:29 
+你把数据手册中的中断向量表看全了，不要忽略复位和软中断！
+
+ 学习了，能讲讲IAR是如何对应的么，比如TIM2的中断地址是0x00 8054，而vector=0x15.这个对应关系是什么呢 
+
+
+ 
+ 
+ 
+ 
+
+
+举报 
+. 
+  
+
+
+
+
+
+
+技术新星奖章
+
+
+
+.
+
+
+
+.
+查看详细资料
+
+
+
+
+astwyg
+
+
+
+初级技术员 Rank: 2
+
+
+
+
+积分81帖子27本月在线6小时0分.
+专家等级: 
+
+结帖率:100%
+ 
+7#  
+
+
+
+ astwyg 发表于 2013-6-5 22:53:41 |只看该作者 |返回版面   .
+
+
+
+
+
+
+枫叶gbwz 发表于 2013-6-4 15:58 
+学习了，能讲讲IAR是如何对应的么，比如TIM2的中断地址是0x00 8054，而vector=0x15.这个对应关系是什么呢 ...
+
+有偏移量吧 
+ 
+
+}
+
+ 
+ 
