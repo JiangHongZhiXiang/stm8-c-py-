@@ -1,0 +1,17 @@
+enumerate
+
+PostgreSQL°¢MySQL°¢SQLite°¢Oracle°£
+
+
+
+C:\Users\cpa\PycharmProjects\demol>python manage.py runserver 0.0.0.0:89
+
+
+ <a href="http://www.mi.com">let's go</a><br />
+    <a href="http://www.baidu.com.cn">∞Ÿ∂»</a>
+
+
+
+
+http://www.wowoto.org/iwowoto/web/login/index.html
+’À∫≈admin√‹¬Îwowoto123456
